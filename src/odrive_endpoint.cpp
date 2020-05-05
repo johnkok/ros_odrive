@@ -9,7 +9,8 @@ using namespace std;
  * initialize USB library and local variables  
  *
  */
-odrive_endpoint::odrive_endpoint(){
+odrive_endpoint::odrive_endpoint()
+{
 
     if (libusb_init(&libusb_context_) != LIBUSB_SUCCESS) {
 	ROS_ERROR("* Error initializing USB!");
@@ -22,7 +23,8 @@ odrive_endpoint::odrive_endpoint(){
  * release USB library
  *
  */
-odrive_endpoint::~odrive_endpoint(){
+odrive_endpoint::~odrive_endpoint()
+{
 
     if (libusb_context_ != NULL) {
         libusb_exit(libusb_context_);
@@ -37,7 +39,8 @@ odrive_endpoint::~odrive_endpoint(){
  * @param value data to append
  *
  */
-void odrive_endpoint::appendShortToCommBuffer(commBuffer& buf, const short value) {
+void odrive_endpoint::appendShortToCommBuffer(commBuffer& buf, const short value) 
+{
     buf.push_back((value >> 0) & 0xFF);
     buf.push_back((value >> 8) & 0xFF);
 }
@@ -49,7 +52,8 @@ void odrive_endpoint::appendShortToCommBuffer(commBuffer& buf, const short value
  * @param value data to append
  *
  */
-void odrive_endpoint::appendIntToCommBuffer(commBuffer& buf, const int value) {
+void odrive_endpoint::appendIntToCommBuffer(commBuffer& buf, const int value) 
+{
     buf.push_back((value >> 0) & 0xFF);
     buf.push_back((value >> 8) & 0xFF);
     buf.push_back((value >> 16) & 0xFF);
@@ -66,7 +70,8 @@ void odrive_endpoint::appendIntToCommBuffer(commBuffer& buf, const int value) {
  *
  */
 commBuffer odrive_endpoint::decodeODrivePacket(commBuffer& buf, 
-		short& seq_no, commBuffer& received_packet) {
+		short& seq_no, commBuffer& received_packet) 
+{
     commBuffer payload;
 
     memcpy(&seq_no, &buf[0], sizeof(short));
@@ -83,13 +88,15 @@ commBuffer odrive_endpoint::decodeODrivePacket(commBuffer& buf,
  * @param seq_no next sequence number
  * @param endpoint_id USB endpoint ID
  * @param response_size maximum data length to be read
+ * @param read append request address
  * @param address desctination address
  * @param input data buffer to send
  * @return data buffer read
  *
  */
-commBuffer odrive_endpoint::createODrivePacketRead(short seq_no, int endpoint_id,
-                short response_size, int address, const commBuffer& input) {
+commBuffer odrive_endpoint::createODrivePacket(short seq_no, int endpoint_id,
+                short response_size, bool read, int address, const commBuffer& input) 
+{
     commBuffer packet;
     short crc = 0;
 
@@ -103,41 +110,9 @@ commBuffer odrive_endpoint::createODrivePacketRead(short seq_no, int endpoint_id
     appendShortToCommBuffer(packet, seq_no);
     appendShortToCommBuffer(packet, endpoint_id);
     appendShortToCommBuffer(packet, response_size);
-    appendIntToCommBuffer(packet, address);
-
-    for (uint8_t b : input) {
-        packet.push_back(b);
+    if (read) {
+        appendIntToCommBuffer(packet, address);
     }
-
-    appendShortToCommBuffer(packet, crc);
-
-    return packet;
-}
-
-/**
- *
- * Send data buffer to Odrive harware
- * @param seq_no next sequence number
- * @param endpoint_id odrive ID
- * @param response_size maximum data length to be read
- * @param input data buffer to send
- * @return data buffer read
- *
- */
-commBuffer odrive_endpoint::createODrivePacket(short seq_no, int endpoint_id, 
-		short response_size, const commBuffer& input) {
-    commBuffer packet;
-    short crc = 0;
-    if ((endpoint_id & 0x7fff) == 0) {
-        crc = ODRIVE_PROTOCOL_VERION;
-    }
-    else {
-        crc = ODRIVE_DEFAULT_CRC_VALUE;
-    }
-
-    appendShortToCommBuffer(packet, seq_no);
-    appendShortToCommBuffer(packet, endpoint_id);
-    appendShortToCommBuffer(packet, response_size);
 
     for (uint8_t b : input) {
         packet.push_back(b);
@@ -157,12 +132,13 @@ commBuffer odrive_endpoint::createODrivePacket(short seq_no, int endpoint_id,
  *
  */
 template<typename T>
-int odrive_endpoint::getData(int id, T& value) {
+int odrive_endpoint::getData(int id, T& value) 
+{
     commBuffer tx;
     commBuffer rx;
     int rx_size;
 
-    int result = endpointRequest(odrive_handle_, id, rx,
+    int result = endpointRequest(id, rx,
                     rx_size, tx, 1 /* ACK */, sizeof(value));
     if (result != ODRIVE_OK) {
         return result;
@@ -181,18 +157,13 @@ int odrive_endpoint::getData(int id, T& value) {
  *  @return ODRIVE_OK on success
  *
  */
-int odrive_endpoint::execFunc(int endpoint_id) {
+int odrive_endpoint::execFunc(int endpoint_id) 
+{
     commBuffer tx;
     commBuffer rx;
     int rx_length;
 
-    int result = endpointRequest(odrive_handle_, endpoint_id, rx,
-                    rx_length, tx, 1, 0);
-    if (result != ODRIVE_OK) {
-        return result;
-    }
-
-    return ODRIVE_OK;
+    return endpointRequest(endpoint_id, rx, rx_length, tx, 1, 0);
 }
 
 /**
@@ -204,7 +175,8 @@ int odrive_endpoint::execFunc(int endpoint_id) {
  *
  */
 template<typename TT>
-int odrive_endpoint::setData(int endpoint_id, const TT& value) {
+int odrive_endpoint::setData(int endpoint_id, const TT& value) 
+{
     commBuffer tx;
     commBuffer rx;
     int rx_length;
@@ -213,13 +185,7 @@ int odrive_endpoint::setData(int endpoint_id, const TT& value) {
        tx.push_back(((unsigned char*)&value)[i]);
     }
 
-    int result = endpointRequest(odrive_handle_, endpoint_id, rx,
-                    rx_length, tx, 1, 0);
-    if (result != ODRIVE_OK) {
-        return result;
-    }
-
-    return ODRIVE_OK;
+    return endpointRequest(endpoint_id, rx, rx_length, tx, 1, 0);
 }
 
 /**
@@ -232,12 +198,15 @@ int odrive_endpoint::setData(int endpoint_id, const TT& value) {
  * @param payload data read
  * @param ack request acknowledge
  * @param length data length
+ * @param read send read address
+ * @param address read address
  * @return LIBUSB_SUCCESS on success
  *
  */
-int odrive_endpoint::endpointRequest(libusb_device_handle* handle, int endpoint_id, 
-		commBuffer& received_payload, 
-		int& received_length, commBuffer payload, int ack, int length) {
+int odrive_endpoint::endpointRequest(int endpoint_id, commBuffer& received_payload, 
+		int& received_length, commBuffer payload, 
+		bool ack, int length, bool read, int address) 
+{
     commBuffer send_buffer;
     commBuffer receive_buffer;
     unsigned char receive_bytes[ODRIVE_MAX_RESULT_LENGTH] = { 0 };
@@ -245,6 +214,7 @@ int odrive_endpoint::endpointRequest(libusb_device_handle* handle, int endpoint_
     int received_bytes = 0;
     short received_seq_no = 0;
 
+    // Prepare sequence number
     if (ack) {
         endpoint_id |= 0x8000;
     }
@@ -252,9 +222,10 @@ int odrive_endpoint::endpointRequest(libusb_device_handle* handle, int endpoint_
     outbound_seq_no_ |= LIBUSB_ENDPOINT_IN; 
     short seq_no = outbound_seq_no_;
 
-    // Send the packet
-    commBuffer packet = createODrivePacket(seq_no, endpoint_id, length, payload);
+    // Create request packet
+    commBuffer packet = createODrivePacket(seq_no, endpoint_id, length, read, address, payload);
 
+    // Transfer paket to target
     int result = libusb_bulk_transfer(odrive_handle_, ODRIVE_OUT_EP, 
 		    packet.data(), packet.size(), &sent_bytes, 0);
     if (result != LIBUSB_SUCCESS) {
@@ -264,6 +235,7 @@ int odrive_endpoint::endpointRequest(libusb_device_handle* handle, int endpoint_
         ROS_ERROR("* Error in transfering data to USB, not all data transferred!");
     }
 
+    // Get responce
     if (ack) {
         result = libusb_bulk_transfer(odrive_handle_, ODRIVE_IN_EP, 
 			receive_bytes, ODRIVE_MAX_BYTES_TO_RECEIVE, 
@@ -281,72 +253,6 @@ int odrive_endpoint::endpointRequest(libusb_device_handle* handle, int endpoint_
         received_payload = decodeODrivePacket(receive_buffer, received_seq_no, receive_buffer);
         if (received_seq_no != seq_no) {
 	    ROS_ERROR("* Error Received data out of order");
-        }
-        received_length = received_payload.size();
-    }
-
-    return LIBUSB_SUCCESS;
-}
-
-/**
- *
- * Read from endpoint
- * @param endpoint_id odrive ID
- * @param received_payload receive buffer
- * @param received_length receive length
- * @param payload data read
- * @param ack request acknowledge
- * @param length data length
- * @param address destination address
- * @return LIBUSB_SUCCESS on success
- *
- */
-int odrive_endpoint::endpointRead(int endpoint_id, commBuffer& received_payload, 
-		int& received_length, commBuffer payload, 
-		int ack, int length, int address) {
-    commBuffer send_buffer;
-    commBuffer receive_buffer;
-    unsigned char receive_bytes[ODRIVE_MAX_RESULT_LENGTH] = { 0 };
-    int sent_bytes = 0;
-    int received_bytes = 0;
-    short received_seq_no = 0;
-
-    if (ack) {
-        endpoint_id |= 0x8000;
-    }
-    outbound_seq_no_ = (outbound_seq_no_ + 1) & 0x7fff;
-    outbound_seq_no_ |= LIBUSB_ENDPOINT_IN;
-    short seq_no = outbound_seq_no_;
-
-    // Send the packet
-    commBuffer packet = createODrivePacketRead(seq_no, endpoint_id, length, address, payload);
-
-    int result = libusb_bulk_transfer(odrive_handle_, ODRIVE_OUT_EP,
-                    packet.data(), packet.size(), &sent_bytes, 0);
-    if (result != LIBUSB_SUCCESS) {
-        ROS_ERROR("* Error in transfering data to USB!");
-        return result;
-    } else if (packet.size() != sent_bytes) {
-        ROS_ERROR("* Error in transfering data to USB, not all data transferred!");
-    }
-
-    if (ack) {
-        result = libusb_bulk_transfer(odrive_handle_, ODRIVE_IN_EP,
-                        receive_bytes, ODRIVE_MAX_BYTES_TO_RECEIVE,
-                        &received_bytes, ODRIVE_TIMEOUT);
-        if (result != LIBUSB_SUCCESS) {
-            ROS_ERROR("* Error in reading data from USB!");
-            return result;
-        }
-
-        // Push recevived data to buffer
-        for (int i = 0; i < received_bytes; i++) {
-          receive_buffer.push_back(receive_bytes[i]);
-        }
-
-        received_payload = decodeODrivePacket(receive_buffer, received_seq_no, receive_buffer);
-        if (received_seq_no != seq_no) {
-            ROS_ERROR("* Error Received data out of order");
         }
         received_length = received_payload.size();
     }

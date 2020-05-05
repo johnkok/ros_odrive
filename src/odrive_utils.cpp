@@ -61,6 +61,7 @@ int setChannelConfig(odrive_endpoint *endpoint, Json::Value odrive_json, Json::V
         }
     }
 
+    // Save configuration
     if (save_config) {
         ret = execOdriveFunc(endpoint, odrive_json, "save_configuration");
     }
@@ -149,7 +150,7 @@ int getJson(odrive_endpoint *endpoint, Json::Value *odrive_json)
     string json;
 
     do {
-        endpoint->endpointRead(0, rx, len, tx, 1, 512, address);
+        endpoint->endpointRequest(0, rx, len, tx, true, 512, true, address);
         address = address + len;
         json.append((const char *)&rx[0], (size_t)len);
     } while (len > 0);

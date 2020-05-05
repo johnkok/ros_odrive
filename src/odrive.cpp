@@ -46,7 +46,7 @@ int main(int argc, char **argv)
         Json::Value config_json;
         bool res = reader.parse(json, config_json);
         if (!res) {
-            ROS_ERROR("Error parsing %s json!", cfg_fn);
+            ROS_ERROR("Error parsing %s json!", cfg_fn.c_str());
         }
         else {
             setChannelConfig(endpoint, odrive_json, config_json, true);

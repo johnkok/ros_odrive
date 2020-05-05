@@ -74,12 +74,9 @@ class odrive_endpoint {
 
 	int execFunc(int id);
 
-	int endpointRequest(libusb_device_handle* handle, int endpoint_id,
-                commBuffer& received_payload, int& received_length, commBuffer payload,
-                int ack, int length);
-        int endpointRead(int endpoint_id,
-                commBuffer& received_payload, int& received_length, commBuffer payload,
-                int ack, int length, int address);
+	int endpointRequest(int endpoint_id, commBuffer& received_payload, 
+			int& received_length, commBuffer payload, bool ack, 
+			int length, bool read = false, int address = 0);
 
     private:
         libusb_context* libusb_context_;
@@ -89,11 +86,8 @@ class odrive_endpoint {
         void appendShortToCommBuffer(commBuffer& buf, const short value);
         void appendIntToCommBuffer(commBuffer& buf, const int value);
         commBuffer decodeODrivePacket(commBuffer& buf, short& seq_no, commBuffer& received_packet);
-
         commBuffer createODrivePacket(short seq_no, int endpoint_id, short response_size, 
-		const commBuffer& input);
-        commBuffer createODrivePacketRead(short seq_no, int endpoint_id,
-		short response_size, int address, const commBuffer& input);
+			bool read, int address, const commBuffer& input);
 };
 
 #endif // ODRIVE_ENDPOINT_HPP_
