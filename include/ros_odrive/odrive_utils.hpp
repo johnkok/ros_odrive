@@ -24,9 +24,10 @@ typedef struct _odrive_object {
 
 int getJson(odrive_endpoint *endpoint, Json::Value *json);
 
-int setChannelConfig(odrive_endpoint *endpoint, Json::Value odrive_json, Json::Value config_json);
+int setChannelConfig(odrive_endpoint *endpoint, Json::Value odrive_json, Json::Value config_json,
+		bool save_config);
 int calibrateAxis0(odrive_endpoint *endpoint, Json::Value odrive_json);
-int calibrateAxis0(odrive_endpoint *endpoint, Json::Value odrive_json);
+int calibrateAxis1(odrive_endpoint *endpoint, Json::Value odrive_json);
 
 int getObjectByName(Json::Value odrive_json, std::string name, odrive_object *odo);
 

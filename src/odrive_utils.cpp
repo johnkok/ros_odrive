@@ -12,10 +12,60 @@ using namespace std;
  *  @return ODRIVE_OK on success
  *
  */
-int setChannelConfig(odrive_endpoint *endpoint, Json::Value odrive_json, Json::Value config_json)
+int setChannelConfig(odrive_endpoint *endpoint, Json::Value odrive_json, Json::Value config_json,
+		bool save_config = 0)
 {
+    int ret = ODRIVE_OK;
 
-    return ODRIVE_OK;
+    for (int i = 0 ; i < config_json.size() ; i++) {
+	string name = config_json[i]["name"].asString();
+	string type = config_json[i]["type"].asString();
+
+        ROS_INFO("Setting %s config value", name.c_str());   
+
+	if (!type.compare("float")) {
+            float val = config_json[i]["value"].asFloat();
+            writeOdriveData(endpoint, odrive_json, name, val);
+	}
+        else if (!type.compare("uint8")) {
+            uint8_t val = config_json[i]["value"].asUInt(); 
+            writeOdriveData(endpoint, odrive_json, name, val);
+	}
+        else if (!type.compare("uint16")) {
+            uint16_t val = config_json[i]["value"].asUInt();
+            writeOdriveData(endpoint, odrive_json, name, val);
+	}
+        else if (!type.compare("uint32")) {
+            uint32_t val = config_json[i]["value"].asUInt();
+            writeOdriveData(endpoint, odrive_json, name, val);
+	}
+        else if (!type.compare("uint64")) {
+            uint64_t val = config_json[i]["value"].asUInt64();
+            writeOdriveData(endpoint, odrive_json, name, val);
+	}
+        else if (!type.compare("int32")) {
+            int val = config_json[i]["value"].asInt();
+            writeOdriveData(endpoint, odrive_json, name, val);
+	}
+        else if (!type.compare("int16")) {
+            short val = config_json[i]["value"].asInt();
+            writeOdriveData(endpoint, odrive_json, name, val);
+	}
+        else if (!type.compare("bool")) {
+            bool val = config_json[i]["value"].asBool();
+            writeOdriveData(endpoint, odrive_json, name, val);
+	}
+        else {
+            ROS_ERROR("Error: invalid type for %s", name.c_str());
+            return ODRIVE_ERROR;
+        }
+    }
+
+    if (save_config) {
+        ret = execOdriveFunc(endpoint, odrive_json, "save_configuration");
+    }
+
+    return ret;
 }
 
 /**

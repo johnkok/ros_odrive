@@ -1,5 +1,7 @@
 #include "ros_odrive/odrive.hpp"
 #include "ros_odrive/odrive.h"
+#include <string>
+#include <fstream>
 
 using namespace std;
 
@@ -9,14 +11,15 @@ int main(int argc, char **argv)
 {
     ROS_INFO("Starting ODrive...");
 
+    // Initialize ROS node
     ros::init(argc, argv, "ros_odrive"); // Initializes Node Name
     ros::NodeHandle nh;
     ros::Publisher odrive_pub =
         nh.advertise<ros_odrive::odrive>("ros_odrive_msg", 100);
-
     ros::Rate r(1);
     ros_odrive::odrive msg;
 
+    // Get odrive endpoint instance
     odrive_endpoint *endpoint = new odrive_endpoint();
 
     // Enumarate Odrive target
@@ -29,12 +32,30 @@ int main(int argc, char **argv)
     // Read JSON from target
     getJson(endpoint, &odrive_json);
 
-    float vbus, c0b, c0c, c1b, c1c;
-    uint16_t error0;
-    uint16_t error1;
-    uint16_t u16val;
+    // Process configuration file
+    ifstream cfg;
+    string line, json;
+    string cfg_fn = "src/ros_odrive/cfg/odrive_5pole.json";
+    cfg.open (cfg_fn, ios::in);
+    if (cfg.is_open()) {
+        while (getline(cfg, line)) {
+            json.append(line);
+        }
+        cfg.close();
+        Json::Reader reader;
+        Json::Value config_json;
+        bool res = reader.parse(json, config_json);
+        if (!res) {
+            ROS_ERROR("Error parsing %s json!", cfg_fn);
+        }
+        else {
+            setChannelConfig(endpoint, odrive_json, config_json, true);
+        }
+    }
 
-    float fval, temp;
+    // Init 
+    float vbus, c0b, c0c, c1b, c1c, fval, temp;
+    uint16_t error0, error1, u16val;
     int ival;
     uint8_t u8val;
     bool bval;
