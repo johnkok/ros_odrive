@@ -9,21 +9,35 @@ Json::Value odrive_json;
 
 int main(int argc, char **argv)		
 {
+    std::string od_sn;
+    std::string od_cfg;
+
     ROS_INFO("Starting ODrive...");
 
     // Initialize ROS node
     ros::init(argc, argv, "ros_odrive"); // Initializes Node Name
-    ros::NodeHandle nh;
+    ros::NodeHandle nh("~");
     ros::Publisher odrive_pub =
         nh.advertise<ros_odrive::odrive>("ros_odrive_msg", 100);
     ros::Rate r(1);
     ros_odrive::odrive msg;
+    nh.param<std::string>("od_sn", od_sn, "0x00000000");
+    nh.param<std::string>("od_cfg", od_cfg, "");
+
+    // Get device serial number
+    if (nh.getParam("od_sn", od_sn)) {
+        ROS_INFO("Node odrive S/N: %s", od_sn.c_str());
+    }
+    else {
+        ROS_ERROR("Failed to get sn parameter %s!", od_sn.c_str());
+        return 1;
+    }
 
     // Get odrive endpoint instance
     odrive_endpoint *endpoint = new odrive_endpoint();
 
     // Enumarate Odrive target
-    if (endpoint->init(0x2054306D594D))
+    if (endpoint->init(stoull(od_sn, 0, 16)))
     {
         ROS_ERROR("Device not found!");
         return 1;
@@ -33,24 +47,30 @@ int main(int argc, char **argv)
     getJson(endpoint, &odrive_json);
 
     // Process configuration file
-    ifstream cfg;
-    string line, json;
-    string cfg_fn = "src/ros_odrive/cfg/odrive_5pole.json";
-    cfg.open (cfg_fn, ios::in);
-    if (cfg.is_open()) {
-        while (getline(cfg, line)) {
-            json.append(line);
+    if (nh.searchParam("od_cfg", od_cfg)) {
+        nh.getParam("od_cfg", od_cfg);
+        ROS_INFO("Using configuration file: %s", od_cfg.c_str());
+
+        ifstream cfg;
+        string line, json;
+        cfg.open (od_cfg, ios::in);
+        if (cfg.is_open()) {
+            while (getline(cfg, line)) {
+                json.append(line);
+            }
+            cfg.close();
+            Json::Reader reader;
+            Json::Value config_json;
+            bool res = reader.parse(json, config_json);
+            if (!res) {
+                ROS_ERROR("Error parsing %s json!", od_cfg.c_str());
+            }
+            else {
+                setChannelConfig(endpoint, odrive_json, config_json, false);
+            }
         }
-        cfg.close();
-        Json::Reader reader;
-        Json::Value config_json;
-        bool res = reader.parse(json, config_json);
-        if (!res) {
-            ROS_ERROR("Error parsing %s json!", cfg_fn.c_str());
-        }
-        else {
-            setChannelConfig(endpoint, odrive_json, config_json, true);
-        }
+//      calibrateAxis0(endpoint, odrive_json);
+        execOdriveFunc(endpoint, odrive_json, "save_configuration");
     }
 
     // Init 
@@ -67,6 +87,7 @@ int main(int argc, char **argv)
                     string("axis0.error"), u16val);
     execOdriveFunc(endpoint, odrive_json, "axis0.watchdog_feed");
 
+    // Enable LOOP Control
     u8val = AXIS_STATE_CLOSED_LOOP_CONTROL;
     writeOdriveData(endpoint, odrive_json, 
 		    string("axis0.requested_state"), u8val);
