@@ -4,6 +4,58 @@ using namespace std;
 
 /**
  *
+ *  update odrive config
+ *  Configure parameter on odrive hardware
+ *  @param endpoint odrive enumarated endpoint
+ *  @param odrive_json target json
+ *  @param config_json json including configuration parameters
+ *  @return ODRIVE_OK on success
+ *
+ */
+int updateTargetConfig(odrive_endpoint *endpoint, Json::Value odrive_json, string config_file)
+{
+    ifstream cfg;
+    string line, json;
+    cfg.open (config_file, ios::in);
+    if (cfg.is_open()) {
+        while (getline(cfg, line)) {
+            json.append(line);
+        }
+        cfg.close();
+        Json::Reader reader;
+        Json::Value config_json;
+        bool res = reader.parse(json, config_json);
+        if (!res) {
+            ROS_ERROR("Error parsing %s json!", config_file.c_str());
+            return ODRIVE_ERROR;
+        }
+        else {
+            if (setChannelConfig(endpoint, odrive_json, config_json, false) != ODRIVE_OK) {
+                ROS_ERROR("Error setting configuration!");
+                return ODRIVE_ERROR;	    
+	    }
+        }
+        if (calibrateAxis0(endpoint, odrive_json) != ODRIVE_OK) {
+            ROS_ERROR("Error calibrating axis 0!");
+	    return ODRIVE_ERROR;
+	}
+//      if (calibrateAxis1(endpoint, odrive_json) != ODRIVE_OK) {
+//          ROS_ERROR("Error calibrating axis 1!");
+//          return ODRIVE_ERROR;
+//      }
+	if (execOdriveFunc(endpoint, odrive_json, "save_configuration") != ODRIVE_OK) {
+	    ROS_ERROR("Error saving configuration!");
+	    return ODRIVE_ERROR;
+	}
+    }
+    else {
+        ROS_ERROR("Error opening configuration file!");
+	return ODRIVE_ERROR;
+    }
+}
+
+/**
+ *
  *  Set odrive config
  *  Configure parameter on odrive hardware
  *  @param endpoint odrive enumarated endpoint

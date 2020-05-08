@@ -1,12 +1,79 @@
 #include "ros_odrive/odrive.hpp"
-#include "ros_odrive/odrive.h"
-#include <string>
-#include <fstream>
 
 using namespace std;
 
 Json::Value odrive_json;
+bool targetJsonValid = false;
 
+/**
+ *
+ * Publise odrive message to ROS
+ * @param endpoint odrive enumarated endpoint
+ * @param odrive_json target json
+ * @param odrive_pub ROS publisher
+ * return ODRIVE_OK in success
+ *
+ */
+int publishMessage(odrive_endpoint *endpoint, Json::Value odrive_json, ros::Publisher odrive_pub)
+{
+    uint16_t u16val;
+    uint8_t u8val;
+    float fval;
+    ros_odrive::odrive msg;
+
+    // Collect data
+    readOdriveData(endpoint, odrive_json, string("vbus_voltage"), fval);
+    msg.vbus = fval;
+    readOdriveData(endpoint, odrive_json, string("axis0.error"), u16val);
+    msg.error0 = u16val;
+    readOdriveData(endpoint, odrive_json, string("axis1.error"), u16val);
+    msg.error1 = u16val;
+    readOdriveData(endpoint, odrive_json, string("axis0.current_state"), u8val);
+    msg.state0 = u8val;
+    readOdriveData(endpoint, odrive_json, string("axis1.current_state"), u8val);
+    msg.state1 = u8val;
+    readOdriveData(endpoint, odrive_json,
+                    string("axis0.encoder.vel_estimate"), fval);
+    msg.vel0 = fval;
+    readOdriveData(endpoint, odrive_json,
+                    string("axis1.encoder.vel_estimate"), fval);
+    msg.vel1 = fval;
+    readOdriveData(endpoint, odrive_json,
+                    string("axis0.encoder.pos_estimate"), fval);
+    msg.pos0 = fval;
+    readOdriveData(endpoint, odrive_json,
+                    string("axis1.encoder.pos_estimate"), fval);
+    msg.pos1 = fval;
+    readOdriveData(endpoint, odrive_json,
+                    string("axis0.motor.current_meas_phB"), fval);
+    msg.curr0B = fval;
+    readOdriveData(endpoint, odrive_json,
+                    string("axis0.motor.current_meas_phC"), fval);
+    msg.curr0C = fval;
+    readOdriveData(endpoint, odrive_json,
+                    string("axis1.motor.current_meas_phB"), fval);
+    msg.curr1B = fval;
+    readOdriveData(endpoint, odrive_json,
+                    string("axis1.motor.current_meas_phC"), fval);
+    msg.curr1C = fval;
+    execOdriveGetTemp(endpoint, odrive_json,
+                    string("axis0.motor.get_inverter_temp"), fval);
+    msg.temp0 = fval;
+    execOdriveGetTemp(endpoint, odrive_json,
+                    string("axis1.motor.get_inverter_temp"), fval);
+    msg.temp1 = fval;
+
+    // Publish message
+    odrive_pub.publish(msg);
+
+    return ODRIVE_OK;
+}
+
+/**
+ *
+ * Node main function
+ *
+ */
 int main(int argc, char **argv)		
 {
     std::string od_sn;
@@ -20,7 +87,7 @@ int main(int argc, char **argv)
     ros::Publisher odrive_pub =
         nh.advertise<ros_odrive::odrive>("ros_odrive_msg", 100);
     ros::Rate r(1);
-    ros_odrive::odrive msg;
+//  ros_odrive::odrive msg;
     nh.param<std::string>("od_sn", od_sn, "0x00000000");
     nh.param<std::string>("od_cfg", od_cfg, "");
 
@@ -51,26 +118,7 @@ int main(int argc, char **argv)
         nh.getParam("od_cfg", od_cfg);
         ROS_INFO("Using configuration file: %s", od_cfg.c_str());
 
-        ifstream cfg;
-        string line, json;
-        cfg.open (od_cfg, ios::in);
-        if (cfg.is_open()) {
-            while (getline(cfg, line)) {
-                json.append(line);
-            }
-            cfg.close();
-            Json::Reader reader;
-            Json::Value config_json;
-            bool res = reader.parse(json, config_json);
-            if (!res) {
-                ROS_ERROR("Error parsing %s json!", od_cfg.c_str());
-            }
-            else {
-                setChannelConfig(endpoint, odrive_json, config_json, false);
-            }
-        }
-//      calibrateAxis0(endpoint, odrive_json);
-        execOdriveFunc(endpoint, odrive_json, "save_configuration");
+	updateTargetConfig(endpoint, odrive_json, od_cfg);
     }
 
     // Init 
@@ -79,6 +127,7 @@ int main(int argc, char **argv)
     int ival;
     uint8_t u8val;
     bool bval;
+    float pos0;
 
     // Reset watchdog/errors on target
     execOdriveFunc(endpoint, odrive_json, "axis0.watchdog_feed");
@@ -95,55 +144,19 @@ int main(int argc, char **argv)
     int i = 0;
     // Example loop - reading values and updating motor velocity
     while (ros::ok()) {
-        readOdriveData(endpoint, odrive_json, string("axis0.motor.config.pole_pairs"), ival);
-        cout << "poles0: " << ival << endl;
-
-        readOdriveData(endpoint, odrive_json, string("vbus_voltage"), vbus);
-        cout << "VBUS: " << vbus << endl;
-        readOdriveData(endpoint, odrive_json, string("axis0.error"), error0);
-        cout << "axis0: " << error0 << endl;
-        readOdriveData(endpoint, odrive_json, string("axis1.error"), error1);
-        cout << "axis1: " << error1 << endl;
-        readOdriveData(endpoint, odrive_json, 
-			string("axis0.motor.current_meas_phB"), c0b);
-        cout << "C0B: " << c0b << endl;
-        readOdriveData(endpoint, odrive_json, 
-			string("axis0.motor.current_meas_phC"), c0c);
-        cout << "C0C: " << c0c << endl;
-        readOdriveData(endpoint, 
-			odrive_json, 
-			string("axis1.motor.current_meas_phB"), c1b);
-        cout << "C1B: " << c1b << endl;
-        readOdriveData(endpoint, 
-			odrive_json, 
-			string("axis1.motor.current_meas_phC"), c1c);
-        cout << "C1C: " << c1c << endl;
-
-	execOdriveGetTemp(endpoint, odrive_json, 
-			string("axis0.motor.get_inverter_temp"), temp);
-        cout << "Temp0: " << temp << endl;
-        execOdriveGetTemp(endpoint, odrive_json, 
-                        string("axis1.motor.get_inverter_temp"), temp);
-        cout << "Temp1: " << temp << endl;
-
-	// Update watchdog
-        execOdriveFunc(endpoint, odrive_json, "axis0.watchdog_feed");
-
-	// Send message
-	msg.vbus = vbus;
-	msg.error0 = error0;
-	msg.error1 = error1;
-	msg.curr0B = c0b;
-        msg.curr0C = c0c;
-        msg.curr1B = c1b;
-        msg.curr1C = c1c;
-        odrive_pub.publish(msg);
-
 	// Update velocity
         fval = 40 + (i++)%100;
         writeOdriveData(endpoint, odrive_json, 
 			string("axis0.controller.vel_setpoint"), fval);
 
+        // Publish status message
+	publishMessage(endpoint, odrive_json, odrive_pub);
+
+	// update watchdog
+        execOdriveFunc(endpoint, odrive_json, "axis0.watchdog_feed");
+        execOdriveFunc(endpoint, odrive_json, "axis1.watchdog_feed");
+
+	// idle loop
 	r.sleep();
         ros::spinOnce();
     }

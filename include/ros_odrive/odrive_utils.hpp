@@ -22,6 +22,8 @@ typedef struct _odrive_object {
     std::string access;
 } odrive_object; 
 
+int updateTargetConfig(odrive_endpoint *endpoint, Json::Value odrive_json, std::string config_file);
+
 int getJson(odrive_endpoint *endpoint, Json::Value *json);
 
 int setChannelConfig(odrive_endpoint *endpoint, Json::Value odrive_json, Json::Value config_json,

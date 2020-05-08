@@ -10,6 +10,9 @@
 #include <string>
 #include <vector>
 #include <libusb-1.0/libusb.h>
+#include "ros_odrive/odrive.h"
+#include <string>
+#include <fstream>
 
 #include "ros/ros.h"
 #include "ros_odrive/odrive_endpoint.hpp"
