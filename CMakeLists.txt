@@ -13,7 +13,8 @@ find_package(Boost REQUIRED COMPONENTS system)
 
 add_message_files(
   FILES
-  odrive.msg
+  odrive_msg.msg
+  odrive_ctrl.msg
 )
 
 generate_messages(

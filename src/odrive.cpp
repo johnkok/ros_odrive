@@ -5,6 +5,12 @@ using namespace std;
 Json::Value odrive_json;
 bool targetJsonValid = false;
 
+void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
+{
+    int i;
+
+}
+
 /**
  *
  * Publise odrive message to ROS
@@ -19,7 +25,7 @@ int publishMessage(odrive_endpoint *endpoint, Json::Value odrive_json, ros::Publ
     uint16_t u16val;
     uint8_t u8val;
     float fval;
-    ros_odrive::odrive msg;
+    ros_odrive::odrive_msg msg;
 
     // Collect data
     readOdriveData(endpoint, odrive_json, string("vbus_voltage"), fval);
@@ -84,10 +90,7 @@ int main(int argc, char **argv)
     // Initialize ROS node
     ros::init(argc, argv, "ros_odrive"); // Initializes Node Name
     ros::NodeHandle nh("~");
-    ros::Publisher odrive_pub =
-        nh.advertise<ros_odrive::odrive>("ros_odrive_msg", 100);
     ros::Rate r(1);
-//  ros_odrive::odrive msg;
     nh.param<std::string>("od_sn", od_sn, "0x00000000");
     nh.param<std::string>("od_cfg", od_cfg, "");
 
@@ -99,6 +102,8 @@ int main(int argc, char **argv)
         ROS_ERROR("Failed to get sn parameter %s!", od_sn.c_str());
         return 1;
     }
+    ros::Publisher odrive_pub = nh.advertise<ros_odrive::odrive_msg>("odrive_msg_" + od_sn, 100);
+    ros::Subscriber odrive_sub = nh.subscribe("odrive_ctrl_" + od_sn, 10, msgCallback);
 
     // Get odrive endpoint instance
     odrive_endpoint *endpoint = new odrive_endpoint();
@@ -143,6 +148,7 @@ int main(int argc, char **argv)
 
     int i = 0;
     // Example loop - reading values and updating motor velocity
+    ROS_INFO("Starting idle loop");
     while (ros::ok()) {
 	// Update velocity
         fval = 40 + (i++)%100;

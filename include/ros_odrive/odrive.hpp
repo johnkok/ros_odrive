@@ -10,7 +10,8 @@
 #include <string>
 #include <vector>
 #include <libusb-1.0/libusb.h>
-#include "ros_odrive/odrive.h"
+#include "ros_odrive/odrive_msg.h"
+#include "ros_odrive/odrive_ctrl.h"
 #include <string>
 #include <fstream>
 
