@@ -4,11 +4,64 @@ using namespace std;
 
 Json::Value odrive_json;
 bool targetJsonValid = false;
+odrive_endpoint *endpoint = NULL;
 
 void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
 {
-    int i;
+    std::string cmd;
+    uint8_t u8val;
+    uint16_t u16val;
+    float fval;
 
+    if (msg->axis == 0) {
+        cmd = "axis0";
+    }
+    else if (msg->axis == 1){
+        cmd = "axis1";
+    }
+    else {
+        ROS_ERROR("Invalid axis value in message!");
+	return;
+    }
+
+    switch (msg->command) {
+        case (CMD_AXIS_RESET):
+	    // Reset errors
+            u16val = u8val = 0;
+	    writeOdriveData(endpoint, odrive_json,
+                    cmd.append(".motor.error"), u16val);
+            writeOdriveData(endpoint, odrive_json,
+                    cmd.append(".encoder.error"), u8val);
+            writeOdriveData(endpoint, odrive_json,
+                    cmd.append(".controller.error"), u8val);
+	    writeOdriveData(endpoint, odrive_json,
+                    cmd.append(".error"), u16val);
+	    break;
+	case (CMD_AXIS_IDLE):
+	    // Set channel to Idle
+            u8val = AXIS_STATE_IDLE;
+            writeOdriveData(endpoint, odrive_json,
+                    cmd.append(".requested_state"), u8val);
+	    break;
+	case (CMD_AXIS_CLOSED_LOOP):
+            // Enable Closed Loop Control
+            u8val = AXIS_STATE_CLOSED_LOOP_CONTROL;
+            writeOdriveData(endpoint, odrive_json,
+                    cmd.append(".requested_state"), u8val);
+	    break;
+	case (CMD_AXIS_SET_VELOCITY):
+	    // Set velocity
+	    fval = msg->fval;
+            writeOdriveData(endpoint, odrive_json,
+                    cmd.append(".controller.vel_setpoint"), fval);
+	    break;
+	case (CMD_REBOOT):
+	    execOdriveFunc(endpoint, odrive_json, string("reboot"));
+	    break;
+	default:
+	    ROS_ERROR("Invalid command type in message!");
+	    return;
+    }
 }
 
 /**
@@ -20,7 +73,7 @@ void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
  * return ODRIVE_OK in success
  *
  */
-int publishMessage(odrive_endpoint *endpoint, Json::Value odrive_json, ros::Publisher odrive_pub)
+int publishMessage(ros::Publisher odrive_pub)
 {
     uint16_t u16val;
     uint8_t u8val;
@@ -106,7 +159,7 @@ int main(int argc, char **argv)
     ros::Subscriber odrive_sub = nh.subscribe("odrive_ctrl_" + od_sn, 10, msgCallback);
 
     // Get odrive endpoint instance
-    odrive_endpoint *endpoint = new odrive_endpoint();
+    endpoint = new odrive_endpoint();
 
     // Enumarate Odrive target
     if (endpoint->init(stoull(od_sn, 0, 16)))
@@ -116,7 +169,10 @@ int main(int argc, char **argv)
     }
 
     // Read JSON from target
-    getJson(endpoint, &odrive_json);
+    if (getJson(endpoint, &odrive_json)) {
+        return 1;
+    }
+    targetJsonValid = true;
 
     // Process configuration file
     if (nh.searchParam("od_cfg", od_cfg)) {
@@ -126,37 +182,11 @@ int main(int argc, char **argv)
 	updateTargetConfig(endpoint, odrive_json, od_cfg);
     }
 
-    // Init 
-    float vbus, c0b, c0c, c1b, c1c, fval, temp;
-    uint16_t error0, error1, u16val;
-    int ival;
-    uint8_t u8val;
-    bool bval;
-    float pos0;
-
-    // Reset watchdog/errors on target
-    execOdriveFunc(endpoint, odrive_json, "axis0.watchdog_feed");
-    u16val = 0;
-    writeOdriveData(endpoint, odrive_json, 
-                    string("axis0.error"), u16val);
-    execOdriveFunc(endpoint, odrive_json, "axis0.watchdog_feed");
-
-    // Enable LOOP Control
-    u8val = AXIS_STATE_CLOSED_LOOP_CONTROL;
-    writeOdriveData(endpoint, odrive_json, 
-		    string("axis0.requested_state"), u8val);
-
-    int i = 0;
     // Example loop - reading values and updating motor velocity
     ROS_INFO("Starting idle loop");
     while (ros::ok()) {
-	// Update velocity
-        fval = 40 + (i++)%100;
-        writeOdriveData(endpoint, odrive_json, 
-			string("axis0.controller.vel_setpoint"), fval);
-
         // Publish status message
-	publishMessage(endpoint, odrive_json, odrive_pub);
+	publishMessage(odrive_pub);
 
 	// update watchdog
         execOdriveFunc(endpoint, odrive_json, "axis0.watchdog_feed");
@@ -166,8 +196,6 @@ int main(int argc, char **argv)
 	r.sleep();
         ros::spinOnce();
     }
-
-//    execOdriveFunc(endpoint, odrive_json, string("reboot"));
 
     endpoint->remove();
 
