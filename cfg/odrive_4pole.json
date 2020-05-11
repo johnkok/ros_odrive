@@ -7,7 +7,7 @@
     {
         "name":"axis0.motor.config.pole_pairs",
         "type":"int32",
-        "value":5
+        "value":4
     },
     {
         "name":"axis0.motor.config.resistance_calib_max_voltage",
@@ -37,7 +37,7 @@
     {
         "name":"axis0.encoder.config.cpr",
         "type":"int32",
-        "value":30
+        "value":24
     },
     {
         "name":"axis0.motor.config.current_lim",
@@ -67,7 +67,7 @@
     {
         "name":"axis0.controller.config.vel_limit",
         "type":"float",
-        "value":300.0
+        "value":225.0
     },
     {
         "name":"axis0.controller.config.control_mode",
@@ -83,7 +83,7 @@
     {
         "name":"axis1.motor.config.pole_pairs",
         "type":"int32",
-        "value":5
+        "value":4
     },
     {
         "name":"axis1.motor.config.resistance_calib_max_voltage",
@@ -113,7 +113,7 @@
     {
         "name":"axis1.encoder.config.cpr",
         "type":"int32",
-        "value":30
+        "value":24
     },
     {
         "name":"axis1.motor.config.current_lim",
@@ -143,7 +143,7 @@
     {
         "name":"axis1.controller.config.vel_limit",
         "type":"float",
-        "value":300.0
+        "value":225.0
     },
     {
         "name":"axis1.controller.config.control_mode",
