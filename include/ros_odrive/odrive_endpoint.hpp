@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <endian.h>
+#include <mutex>
 #include <libusb-1.0/libusb.h>
 
 // ODrive Device Info
@@ -82,6 +83,7 @@ class odrive_endpoint {
         libusb_context* libusb_context_;
         short outbound_seq_no_ = 0;
         libusb_device_handle *odrive_handle_ = NULL;
+        std::mutex ep_lock;
 
         void appendShortToCommBuffer(commBuffer& buf, const short value);
         void appendIntToCommBuffer(commBuffer& buf, const int value);

@@ -214,6 +214,8 @@ int odrive_endpoint::endpointRequest(int endpoint_id, commBuffer& received_paylo
     int received_bytes = 0;
     short received_seq_no = 0;
 
+    ep_lock.lock();
+
     // Prepare sequence number
     if (ack) {
         endpoint_id |= 0x8000;
@@ -230,6 +232,7 @@ int odrive_endpoint::endpointRequest(int endpoint_id, commBuffer& received_paylo
 		    packet.data(), packet.size(), &sent_bytes, 0);
     if (result != LIBUSB_SUCCESS) {
 	ROS_ERROR("* Error in transfering data to USB!");
+        ep_lock.unlock();
         return result;
     } else if (packet.size() != sent_bytes) {
         ROS_ERROR("* Error in transfering data to USB, not all data transferred!");
@@ -242,6 +245,7 @@ int odrive_endpoint::endpointRequest(int endpoint_id, commBuffer& received_paylo
 			&received_bytes, ODRIVE_TIMEOUT);
         if (result != LIBUSB_SUCCESS) {
             ROS_ERROR("* Error in reading data from USB!");
+            ep_lock.unlock();
     	    return result;
         }
 
@@ -256,6 +260,8 @@ int odrive_endpoint::endpointRequest(int endpoint_id, commBuffer& received_paylo
         }
         received_length = received_payload.size();
     }
+
+    ep_lock.unlock();
 
     return LIBUSB_SUCCESS;
 }
