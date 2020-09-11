@@ -24,21 +24,31 @@
 #define ODRIVE_OK    0
 #define ODRIVE_ERROR 1
 
+#define MAX_NR_OF_TARGETS 16
+
+using namespace std;
+
 // Listener commands
 enum commands {
     CMD_AXIS_RESET,
     CMD_AXIS_IDLE,
     CMD_AXIS_CLOSED_LOOP,
     CMD_AXIS_SET_VELOCITY,
+    CMD_AXIS_SET_VELOCITY_DUAL,
     CMD_REBOOT
 };
 
 class odrive{
-
     private:
         void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg);
 
     public:
-
+        vector<string> target_sn;
+        vector<string> target_cfg;
+        vector<ros::Publisher> odrive_pub;
+        vector<ros::Subscriber> odrive_sub;
+        vector<odrive_endpoint *> endpoint;
+        vector<Json::Value> json;
 };
+
 #endif

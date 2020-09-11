@@ -1,5 +1,7 @@
 #Header header    # ROS Message headaer
 
+uint8 target      # Target
+
 float32 vbus      # Bus voltage
 
 int32 error0      # Axis 0 error

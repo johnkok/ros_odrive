@@ -17,6 +17,7 @@ int updateTargetConfig(odrive_endpoint *endpoint, Json::Value odrive_json, strin
     ifstream cfg;
     string line, json;
     cfg.open (config_file, ios::in);
+    cout << config_file;
     if (cfg.is_open()) {
         while (getline(cfg, line)) {
             json.append(line);

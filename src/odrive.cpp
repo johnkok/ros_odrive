@@ -2,9 +2,7 @@
 
 using namespace std;
 
-Json::Value odrive_json;
-bool targetJsonValid = false;
-odrive_endpoint *endpoint = NULL;
+odrive *od;
 
 void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
 {
@@ -12,6 +10,8 @@ void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
     uint8_t u8val;
     uint16_t u16val;
     float fval;
+    odrive_endpoint *endpoint = NULL;
+    Json::Value odrive_json;
 
     if (msg->axis == 0) {
         cmd = "axis0";
@@ -23,6 +23,14 @@ void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
         ROS_ERROR("Invalid axis value in message!");
 	return;
     }
+
+    if ((msg->target < 0) || (msg->target >= MAX_NR_OF_TARGETS)) {
+        ROS_ERROR("Invalid target value in message!");
+        return;
+    }
+
+    endpoint = od->endpoint.at(msg->target);
+    odrive_json = od->json.at(msg->target);
 
     switch (msg->command) {
         case (CMD_AXIS_RESET):
@@ -55,6 +63,15 @@ void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
             writeOdriveData(endpoint, odrive_json,
                     cmd.append(".controller.vel_setpoint"), fval);
 	    break;
+        case (CMD_AXIS_SET_VELOCITY_DUAL):
+            // Set velocity on both axis 
+            fval = msg->fval;
+            writeOdriveData(endpoint, odrive_json,
+                    "axis0.controller.vel_setpoint", fval);
+            fval = msg->fval2;
+	    writeOdriveData(endpoint, odrive_json,
+                    "axis1.controller.vel_setpoint", fval);
+            break;
 	case (CMD_REBOOT):
 	    execOdriveFunc(endpoint, odrive_json, string("reboot"));
 	    break;
@@ -73,7 +90,7 @@ void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
  * return ODRIVE_OK in success
  *
  */
-int publishMessage(ros::Publisher odrive_pub)
+int publishMessage(odrive_endpoint *endpoint, Json::Value odrive_json, ros::Publisher odrive_pub)
 {
     uint16_t u16val;
     uint8_t u8val;
@@ -140,6 +157,8 @@ int main(int argc, char **argv)
 
     ROS_INFO("Starting ODrive...");
 
+    od = new odrive();
+
     // Initialize ROS node
     ros::init(argc, argv, "ros_odrive"); // Initializes Node Name
     ros::NodeHandle nh("~");
@@ -147,59 +166,88 @@ int main(int argc, char **argv)
     nh.param<std::string>("od_sn", od_sn, "0x00000000");
     nh.param<std::string>("od_cfg", od_cfg, "");
 
-    // Get device serial number
-    if (nh.getParam("od_sn", od_sn)) {
-        ROS_INFO("Node odrive S/N: %s", od_sn.c_str());
-    }
-    else {
+    // Get device serial number string
+    if (!nh.getParam("od_sn", od_sn)) {
         ROS_ERROR("Failed to get sn parameter %s!", od_sn.c_str());
         return 1;
     }
-    ros::Publisher odrive_pub = nh.advertise<ros_odrive::odrive_msg>("odrive_msg_" + od_sn, 100);
-    ros::Subscriber odrive_sub = nh.subscribe("odrive_ctrl_" + od_sn, 10, msgCallback);
 
-    // Get odrive endpoint instance
-    endpoint = new odrive_endpoint();
+    // parse sn string for comma seperated values / more than one targets
+    std::stringstream ssn(od_sn);
+    while(ssn.good()) {
+        string substr;
+        getline(ssn, substr, ',');
+	od->target_sn.push_back(substr);
+    }
 
-    // Enumarate Odrive target
-    if (endpoint->init(stoull(od_sn, 0, 16)))
-    {
-        ROS_ERROR("Device not found!");
+    // parse cfg string for comma seperated values / more than one targets
+    std::stringstream scfg(od_cfg);
+    while(scfg.good()) {
+        string substr;
+        getline(scfg, substr, ',');
+        od->target_cfg.push_back(substr);
+    }
+
+    if (od->target_sn.size() != od->target_cfg.size()) {
+	ROS_ERROR("Configuration parameters do not match Serial Numbers list!");
         return 1;
     }
 
-    // Read JSON from target
-    if (getJson(endpoint, &odrive_json)) {
-        return 1;
+    // Initialize publisher/subscriber for each target
+    ROS_INFO("%d odrive instances:", (int)od->target_sn.size());
+    for(int i = 0; i < od->target_sn.size() ; i++) {
+        ROS_INFO("  Instance %d: SN %s - cfg %s", 
+			i, od->target_sn.at(i).c_str(), od->target_cfg.at(i).c_str());
+        od->odrive_pub.push_back(
+		nh.advertise<ros_odrive::odrive_msg>("odrive_msg_" + od->target_sn.at(i), 100));
+        od->odrive_sub.push_back(
+		nh.subscribe("odrive_ctrl_" + od->target_sn.at(i), 10, msgCallback));
+
+        // Get odrive endpoint instance
+        od->endpoint.push_back(new odrive_endpoint());
+
+        // Enumarate Odrive target
+        if (od->endpoint.at(i)->init(stoull(od->target_sn.at(i), 0, 16)))
+        {
+            ROS_ERROR("Device not found!");
+            return 1;
+        }
+
+        // Read JSON from target
+	Json::Value odrive_json;
+        if (getJson(od->endpoint.at(i), &odrive_json)) {
+            return 1;
+        }
+
+	od->json.push_back(odrive_json);
+
+        // Process configuration file
+        updateTargetConfig(od->endpoint.at(i), od->json.at(i), od->target_cfg.at(i));
+
     }
-    targetJsonValid = true;
-
-    // Process configuration file
-    if (nh.searchParam("od_cfg", od_cfg)) {
-        nh.getParam("od_cfg", od_cfg);
-        ROS_INFO("Using configuration file: %s", od_cfg.c_str());
-
-	updateTargetConfig(endpoint, odrive_json, od_cfg);
-    }
-
     // Example loop - reading values and updating motor velocity
     ROS_INFO("Starting idle loop");
     while (ros::ok()) {
-        // Publish status message
-	publishMessage(odrive_pub);
 
-	// update watchdog
-        execOdriveFunc(endpoint, odrive_json, "axis0.watchdog_feed");
-        execOdriveFunc(endpoint, odrive_json, "axis1.watchdog_feed");
+        // Update all targets 
+        for(int i = 0; i < od->target_sn.size() ; i++) {
+            // Publish status message
+            publishMessage(od->endpoint.at(i), od->json.at(i), od->odrive_pub.at(i));
+
+            // update watchdog
+            execOdriveFunc(od->endpoint.at(i), od->json.at(i), "axis0.watchdog_feed");
+            execOdriveFunc(od->endpoint.at(i), od->json.at(i), "axis1.watchdog_feed");
+	}
 
 	// idle loop
 	r.sleep();
         ros::spinOnce();
     }
 
-    endpoint->remove();
-
-    delete endpoint;
+    for(int i = 0; i < od->target_sn.size() ; i++) {
+        od->endpoint.at(i)->remove();
+	delete od->endpoint.at(i);
+    }
 
     return 0;
 }
