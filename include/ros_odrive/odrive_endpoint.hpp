@@ -21,8 +21,9 @@
 #define ODRIVE_TIMEOUT 200
 #define ODRIVE_MAX_BYTES_TO_RECEIVE 64
 #define ODRIVE_MAX_RESULT_LENGTH 100
-#define ODRIVE_DEFAULT_CRC_VALUE 0x7411
-#define ODRIVE_PROTOCOL_VERION 1
+//#define ODRIVE_DEFAULT_CRC_VALUE 0x7411
+#define ODRIVE_DEFAULT_CRC_VALUE 0x9b40
+#define ODRIVE_PROTOCOL_VERSION 1
 
 // ODrive Comm
 #define ODRIVE_COMM_SUCCESS 0
@@ -38,7 +39,7 @@
 // CDC Endpoints parameters
 #define CDC_DATA_HS_MAX_PACKET_SIZE                 64  /* Endpoint IN & OUT Packet size */
 #define CDC_DATA_FS_MAX_PACKET_SIZE                 64  /* Endpoint IN & OUT Packet size */
-#define CDC_CMD_PACKET_SIZE                         8  /* Control Endpoint Packet size */ 
+#define CDC_CMD_PACKET_SIZE                         8  /* Control Endpoint Packet size */
 
 #define USB_CDC_CONFIG_DESC_SIZ                     (67 + 39)
 #define CDC_DATA_HS_IN_PACKET_SIZE                  CDC_DATA_HS_MAX_PACKET_SIZE
@@ -46,7 +47,7 @@
 
 #define CDC_DATA_FS_IN_PACKET_SIZE                  CDC_DATA_FS_MAX_PACKET_SIZE
 #define CDC_DATA_FS_OUT_PACKET_SIZE                 CDC_DATA_FS_MAX_PACKET_SIZE
- 
+
 #define CDC_SEND_ENCAPSULATED_COMMAND               0x00
 #define CDC_GET_ENCAPSULATED_RESPONSE               0x01
 #define CDC_SET_COMM_FEATURE                        0x02
@@ -68,16 +69,16 @@ class odrive_endpoint {
         int init(uint64_t serialNumber);
         void remove(void);
 
-	template<typename T>
+        template<typename T>
             int getData(int id, T& value);
         template<typename TT>
             int setData(int id, const TT& value);
 
-	int execFunc(int id);
+        int execFunc(int id);
 
-	int endpointRequest(int endpoint_id, commBuffer& received_payload, 
-			int& received_length, commBuffer payload, bool ack, 
-			int length, bool read = false, int address = 0);
+        int endpointRequest(int endpoint_id, commBuffer& received_payload,
+            int& received_length, commBuffer payload, bool ack = false,
+            int length = 0, bool read = false, int address = 0);
 
     private:
         libusb_context* libusb_context_;
@@ -88,8 +89,8 @@ class odrive_endpoint {
         void appendShortToCommBuffer(commBuffer& buf, const short value);
         void appendIntToCommBuffer(commBuffer& buf, const int value);
         commBuffer decodeODrivePacket(commBuffer& buf, short& seq_no, commBuffer& received_packet);
-        commBuffer createODrivePacket(short seq_no, int endpoint_id, short response_size, 
-			bool read, int address, const commBuffer& input);
+        commBuffer createODrivePacket(short seq_no, int endpoint_id, short response_size,
+            bool read, int address, const commBuffer& input);
 };
 
 #endif // ODRIVE_ENDPOINT_HPP_

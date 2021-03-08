@@ -21,7 +21,7 @@ void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
     }
     else {
         ROS_ERROR("Invalid axis value in message!");
-	return;
+    return;
     }
 
     if ((msg->target < 0) || (msg->target >= MAX_NR_OF_TARGETS)) {
@@ -34,50 +34,56 @@ void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
 
     switch (msg->command) {
         case (CMD_AXIS_RESET):
-	    // Reset errors
+            // Reset errors
             u16val = u8val = 0;
-	    writeOdriveData(endpoint, odrive_json,
+            writeOdriveData(endpoint, odrive_json,
                     cmd.append(".motor.error"), u16val);
             writeOdriveData(endpoint, odrive_json,
                     cmd.append(".encoder.error"), u8val);
             writeOdriveData(endpoint, odrive_json,
                     cmd.append(".controller.error"), u8val);
-	    writeOdriveData(endpoint, odrive_json,
+            writeOdriveData(endpoint, odrive_json,
                     cmd.append(".error"), u16val);
-	    break;
+            break;
+
 	case (CMD_AXIS_IDLE):
-	    // Set channel to Idle
+            // Set channel to Idle
             u8val = AXIS_STATE_IDLE;
             writeOdriveData(endpoint, odrive_json,
                     cmd.append(".requested_state"), u8val);
-	    break;
+             break;
+
 	case (CMD_AXIS_CLOSED_LOOP):
             // Enable Closed Loop Control
             u8val = AXIS_STATE_CLOSED_LOOP_CONTROL;
             writeOdriveData(endpoint, odrive_json,
                     cmd.append(".requested_state"), u8val);
-	    break;
-	case (CMD_AXIS_SET_VELOCITY):
-	    // Set velocity
-	    fval = msg->fval;
+        break;
+
+        case (CMD_AXIS_SET_VELOCITY):
+            // Set velocity
+            fval = msg->fval;
             writeOdriveData(endpoint, odrive_json,
                     cmd.append(".controller.vel_setpoint"), fval);
-	    break;
-        case (CMD_AXIS_SET_VELOCITY_DUAL):
-            // Set velocity on both axis 
+            break;
+
+	case (CMD_AXIS_SET_VELOCITY_DUAL):
+            // Set velocity on both axis
             fval = msg->fval;
             writeOdriveData(endpoint, odrive_json,
                     "axis0.controller.vel_setpoint", fval);
             fval = msg->fval2;
-	    writeOdriveData(endpoint, odrive_json,
+            writeOdriveData(endpoint, odrive_json,
                     "axis1.controller.vel_setpoint", fval);
             break;
-	case (CMD_REBOOT):
-	    execOdriveFunc(endpoint, odrive_json, string("reboot"));
-	    break;
-	default:
-	    ROS_ERROR("Invalid command type in message!");
-	    return;
+
+        case (CMD_REBOOT):
+            execOdriveFunc(endpoint, odrive_json, string("reboot"));
+            break;
+
+        default:
+            ROS_ERROR("Invalid command type in message!");
+            return;
     }
 }
 
@@ -93,6 +99,7 @@ void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
 int publishMessage(odrive_endpoint *endpoint, Json::Value odrive_json, ros::Publisher odrive_pub)
 {
     uint16_t u16val;
+    uint32_t u32val;
     uint8_t u8val;
     float fval;
     ros_odrive::odrive_msg msg;
@@ -100,14 +107,14 @@ int publishMessage(odrive_endpoint *endpoint, Json::Value odrive_json, ros::Publ
     // Collect data
     readOdriveData(endpoint, odrive_json, string("vbus_voltage"), fval);
     msg.vbus = fval;
-    readOdriveData(endpoint, odrive_json, string("axis0.error"), u16val);
-    msg.error0 = u16val;
-    readOdriveData(endpoint, odrive_json, string("axis1.error"), u16val);
-    msg.error1 = u16val;
-    readOdriveData(endpoint, odrive_json, string("axis0.current_state"), u8val);
-    msg.state0 = u8val;
-    readOdriveData(endpoint, odrive_json, string("axis1.current_state"), u8val);
-    msg.state1 = u8val;
+    readOdriveData(endpoint, odrive_json, string("axis0.error"), u32val);
+    msg.error0 = u32val;
+    readOdriveData(endpoint, odrive_json, string("axis1.error"), u32val);
+    msg.error1 = u32val;
+    readOdriveData(endpoint, odrive_json, string("axis0.current_state"), u32val);
+    msg.state0 = u32val;
+    readOdriveData(endpoint, odrive_json, string("axis1.current_state"), u32val);
+    msg.state1 = u32val;
     readOdriveData(endpoint, odrive_json,
                     string("axis0.encoder.vel_estimate"), fval);
     msg.vel0 = fval;
@@ -132,11 +139,11 @@ int publishMessage(odrive_endpoint *endpoint, Json::Value odrive_json, ros::Publ
     readOdriveData(endpoint, odrive_json,
                     string("axis1.motor.current_meas_phC"), fval);
     msg.curr1C = fval;
-    execOdriveGetTemp(endpoint, odrive_json,
-                    string("axis0.motor.get_inverter_temp"), fval);
+    readOdriveData(endpoint, odrive_json,
+                    string("axis0.fet_thermistor.temperature"), fval);
     msg.temp0 = fval;
-    execOdriveGetTemp(endpoint, odrive_json,
-                    string("axis1.motor.get_inverter_temp"), fval);
+    readOdriveData(endpoint, odrive_json,
+                    string("axis1.fet_thermistor.temperature"), fval);
     msg.temp1 = fval;
 
     // Publish message
@@ -150,7 +157,7 @@ int publishMessage(odrive_endpoint *endpoint, Json::Value odrive_json, ros::Publ
  * Node main function
  *
  */
-int main(int argc, char **argv)		
+int main(int argc, char **argv)    	
 {
     std::string od_sn;
     std::string od_cfg;
@@ -177,7 +184,7 @@ int main(int argc, char **argv)
     while(ssn.good()) {
         string substr;
         getline(ssn, substr, ',');
-	od->target_sn.push_back(substr);
+        od->target_sn.push_back(substr);
     }
 
     // parse cfg string for comma seperated values / more than one targets
@@ -189,37 +196,36 @@ int main(int argc, char **argv)
     }
 
     if (od->target_sn.size() != od->target_cfg.size()) {
-	ROS_ERROR("Configuration parameters do not match Serial Numbers list!");
+    ROS_ERROR("Configuration parameters do not match Serial Numbers list!");
         return 1;
     }
 
     // Initialize publisher/subscriber for each target
     ROS_INFO("%d odrive instances:", (int)od->target_sn.size());
     for(int i = 0; i < od->target_sn.size() ; i++) {
-        ROS_INFO("  Instance %d: SN %s - cfg %s", 
-			i, od->target_sn.at(i).c_str(), od->target_cfg.at(i).c_str());
+        ROS_INFO("  Instance %d: SN %s - cfg %s",
+            i, od->target_sn.at(i).c_str(), od->target_cfg.at(i).c_str());
         od->odrive_pub.push_back(
-		nh.advertise<ros_odrive::odrive_msg>("odrive_msg_" + od->target_sn.at(i), 100));
+    	nh.advertise<ros_odrive::odrive_msg>("odrive_msg_" + od->target_sn.at(i), 100));
         od->odrive_sub.push_back(
-		nh.subscribe("odrive_ctrl_" + od->target_sn.at(i), 10, msgCallback));
+    	nh.subscribe("odrive_ctrl_" + od->target_sn.at(i), 10, msgCallback));
 
         // Get odrive endpoint instance
         od->endpoint.push_back(new odrive_endpoint());
 
         // Enumarate Odrive target
-        if (od->endpoint.at(i)->init(stoull(od->target_sn.at(i), 0, 16)))
-        {
+        if (od->endpoint.at(i)->init(stoull(od->target_sn.at(i), 0, 16))) {
             ROS_ERROR("Device not found!");
             return 1;
         }
 
         // Read JSON from target
-	Json::Value odrive_json;
+        Json::Value odrive_json;
         if (getJson(od->endpoint.at(i), &odrive_json)) {
             return 1;
         }
 
-	od->json.push_back(odrive_json);
+        od->json.push_back(odrive_json);
 
         // Process configuration file
         updateTargetConfig(od->endpoint.at(i), od->json.at(i), od->target_cfg.at(i));
@@ -228,8 +234,7 @@ int main(int argc, char **argv)
     // Example loop - reading values and updating motor velocity
     ROS_INFO("Starting idle loop");
     while (ros::ok()) {
-
-        // Update all targets 
+        // Update all targets
         for(int i = 0; i < od->target_sn.size() ; i++) {
             // Publish status message
             publishMessage(od->endpoint.at(i), od->json.at(i), od->odrive_pub.at(i));
@@ -237,16 +242,16 @@ int main(int argc, char **argv)
             // update watchdog
             execOdriveFunc(od->endpoint.at(i), od->json.at(i), "axis0.watchdog_feed");
             execOdriveFunc(od->endpoint.at(i), od->json.at(i), "axis1.watchdog_feed");
-	}
+    }
 
-	// idle loop
-	r.sleep();
+    // idle loop
+    r.sleep();
         ros::spinOnce();
     }
 
     for(int i = 0; i < od->target_sn.size() ; i++) {
         od->endpoint.at(i)->remove();
-	delete od->endpoint.at(i);
+        delete od->endpoint.at(i);
     }
 
     return 0;

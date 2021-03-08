@@ -22,9 +22,9 @@
 #define ERROR_CURRENT_MEASUREMENT_TIMEOUT 0x08
 #define ERROR_BRAKE_RESISTOR_DISARMED     0x10 //<! the brake resistor was unexpectedly disarmed
 #define ERROR_MOTOR_DISARMED              0x20 //<! the motor was unexpectedly disarmed
-#define ERROR_MOTOR_FAILED                0x40 
+#define ERROR_MOTOR_FAILED                0x40
 #define ERROR_SENSORLESS_ESTIMATOR_FAILED 0x80
-#define ERROR_ENCODER_FAILED              0x100 
+#define ERROR_ENCODER_FAILED              0x100
 #define ERROR_CONTROLLER_FAILED           0x200
 #define ERROR_POS_CTRL_DURING_SENSORLESS  0x400
 #define ERROR_WATCHDOG_TIMER_EXPIRED      0x800
