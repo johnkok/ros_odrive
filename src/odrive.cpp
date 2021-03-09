@@ -8,7 +8,7 @@ void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
 {
     std::string cmd;
     uint8_t u8val;
-    uint16_t u16val;
+    uint32_t u32val;
     float fval;
     odrive_endpoint *endpoint = NULL;
     Json::Value odrive_json;
@@ -35,29 +35,29 @@ void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
     switch (msg->command) {
         case (CMD_AXIS_RESET):
             // Reset errors
-            u16val = u8val = 0;
+            u32val = 0;
             writeOdriveData(endpoint, odrive_json,
-                    cmd.append(".motor.error"), u16val);
+                    cmd.append(".motor.error"), u32val);
             writeOdriveData(endpoint, odrive_json,
-                    cmd.append(".encoder.error"), u8val);
+                    cmd.append(".encoder.error"), u32val);
             writeOdriveData(endpoint, odrive_json,
-                    cmd.append(".controller.error"), u8val);
+                    cmd.append(".controller.error"), u32val);
             writeOdriveData(endpoint, odrive_json,
-                    cmd.append(".error"), u16val);
+                    cmd.append(".error"), u32val);
             break;
 
 	case (CMD_AXIS_IDLE):
             // Set channel to Idle
-            u8val = AXIS_STATE_IDLE;
+            u32val = AXIS_STATE_IDLE;
             writeOdriveData(endpoint, odrive_json,
-                    cmd.append(".requested_state"), u8val);
+                    cmd.append(".requested_state"), u32val);
              break;
 
 	case (CMD_AXIS_CLOSED_LOOP):
             // Enable Closed Loop Control
-            u8val = AXIS_STATE_CLOSED_LOOP_CONTROL;
+            u32val = AXIS_STATE_CLOSED_LOOP_CONTROL;
             writeOdriveData(endpoint, odrive_json,
-                    cmd.append(".requested_state"), u8val);
+                    cmd.append(".requested_state"), u32val);
         break;
 
         case (CMD_AXIS_SET_VELOCITY):
@@ -100,7 +100,6 @@ int publishMessage(odrive_endpoint *endpoint, Json::Value odrive_json, ros::Publ
 {
     uint16_t u16val;
     uint32_t u32val;
-    uint8_t u8val;
     float fval;
     ros_odrive::odrive_msg msg;
 
