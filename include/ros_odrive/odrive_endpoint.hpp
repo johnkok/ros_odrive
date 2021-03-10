@@ -18,7 +18,7 @@
 #define ODRIVE_USB_PRODUCTID    0x0D32
 
 // ODrive USB Protool
-#define ODRIVE_TIMEOUT 200
+#define ODRIVE_TIMEOUT 1000
 #define ODRIVE_MAX_BYTES_TO_RECEIVE 64
 #define ODRIVE_MAX_RESULT_LENGTH 100
 //#define ODRIVE_DEFAULT_CRC_VALUE 0x7411
@@ -37,9 +37,9 @@
 #define ODRIVE_OUT_EP                               0x03  /* EP3 OUT: ODrive device RX endpoint */
 
 // CDC Endpoints parameters
-#define CDC_DATA_HS_MAX_PACKET_SIZE                 64  /* Endpoint IN & OUT Packet size */
-#define CDC_DATA_FS_MAX_PACKET_SIZE                 64  /* Endpoint IN & OUT Packet size */
-#define CDC_CMD_PACKET_SIZE                         8  /* Control Endpoint Packet size */
+#define CDC_DATA_HS_MAX_PACKET_SIZE                 0x40  /* Endpoint IN & OUT Packet size */
+#define CDC_DATA_FS_MAX_PACKET_SIZE                 0x40  /* Endpoint IN & OUT Packet size */
+#define CDC_CMD_PACKET_SIZE                         0x08  /* Control Endpoint Packet size */
 
 #define USB_CDC_CONFIG_DESC_SIZ                     (67 + 39)
 #define CDC_DATA_HS_IN_PACKET_SIZE                  CDC_DATA_HS_MAX_PACKET_SIZE

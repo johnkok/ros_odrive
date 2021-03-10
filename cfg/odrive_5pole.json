@@ -31,7 +31,7 @@
     },
     {
         "name":"axis0.encoder.config.mode",
-        "type":"uint8",
+        "type":"int32",
         "value":1
     },
     {
@@ -71,13 +71,18 @@
     },
     {
         "name":"axis0.controller.config.control_mode",
-        "type":"uint8",
+        "type":"int32",
         "value":2
     },
     {
         "name":"axis0.encoder.config.calib_range",
         "type":"float",
         "value":0.25
+    },
+    {
+        "name":"axis0.motor.config.torque_constant",
+        "type":"float",
+        "value":0.5
     },
 
     {
@@ -107,7 +112,7 @@
     },
     {
         "name":"axis1.encoder.config.mode",
-        "type":"uint8",
+        "type":"int32",
         "value":1
     },
     {
@@ -147,12 +152,17 @@
     },
     {
         "name":"axis1.controller.config.control_mode",
-        "type":"uint8",
+        "type":"int32",
         "value":2
     },
     {
         "name":"axis1.encoder.config.calib_range",
         "type":"float",
         "value":0.25
+    },
+    {
+        "name":"axis1.motor.config.torque_constant",
+        "type":"float",
+        "value":0.5
     }
 ]

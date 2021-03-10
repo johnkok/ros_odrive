@@ -164,7 +164,7 @@ int odrive_endpoint::execFunc(int endpoint_id)
 
     status = endpointRequest(endpoint_id, rx, rx_length, tx, 1, 0);
     if (status != LIBUSB_SUCCESS) {
-        ROS_ERROR("* execFunc: Error in endpoint request!");
+        ROS_ERROR("* execFunc: Error in endpoint request (%d)!", endpoint_id);
     }
     return status;
 }
@@ -252,7 +252,7 @@ int odrive_endpoint::endpointRequest(int endpoint_id, commBuffer& received_paylo
             return result;
         }
 
-    // Push recevived data to buffer
+        // Push recevived data to buffer
         for (int i = 0; i < received_bytes; i++) {
             receive_buffer.push_back(receive_bytes[i]);
         }

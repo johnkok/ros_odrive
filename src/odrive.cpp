@@ -20,12 +20,12 @@ void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
         cmd = "axis1";
     }
     else {
-        ROS_ERROR("Invalid axis value in message!");
+        ROS_ERROR("* Invalid axis value in message!");
     return;
     }
 
     if ((msg->target < 0) || (msg->target >= MAX_NR_OF_TARGETS)) {
-        ROS_ERROR("Invalid target value in message!");
+        ROS_ERROR("* Invalid target value in message!");
         return;
     }
 
@@ -82,7 +82,7 @@ void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
             break;
 
         default:
-            ROS_ERROR("Invalid command type in message!");
+            ROS_ERROR("* Invalid command type in message!");
             return;
     }
 }
@@ -195,14 +195,14 @@ int main(int argc, char **argv)
     }
 
     if (od->target_sn.size() != od->target_cfg.size()) {
-    ROS_ERROR("Configuration parameters do not match Serial Numbers list!");
+        ROS_ERROR("* Configuration parameters do not match Serial Numbers list!");
         return 1;
     }
 
     // Initialize publisher/subscriber for each target
     ROS_INFO("%d odrive instances:", (int)od->target_sn.size());
     for(int i = 0; i < od->target_sn.size() ; i++) {
-        ROS_INFO("  Instance %d: SN %s - cfg %s",
+        ROS_INFO("- Instance %d: SN %s - cfg %s",
             i, od->target_sn.at(i).c_str(), od->target_cfg.at(i).c_str());
         od->odrive_pub.push_back(
     	nh.advertise<ros_odrive::odrive_msg>("odrive_msg_" + od->target_sn.at(i), 100));
@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 
         // Enumarate Odrive target
         if (od->endpoint.at(i)->init(stoull(od->target_sn.at(i), 0, 16))) {
-            ROS_ERROR("Device not found!");
+            ROS_ERROR("* Device not found!");
             return 1;
         }
 

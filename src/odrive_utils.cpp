@@ -27,30 +27,30 @@ int updateTargetConfig(odrive_endpoint *endpoint, Json::Value odrive_json, strin
         Json::Value config_json;
         bool res = reader.parse(json, config_json);
         if (!res) {
-            ROS_ERROR("Error parsing %s json!", config_file.c_str());
+            ROS_ERROR("* Error parsing %s json!", config_file.c_str());
             return ODRIVE_ERROR;
         }
         else {
             if (setChannelConfig(endpoint, odrive_json, config_json, false) != ODRIVE_OK) {
-                ROS_ERROR("Error setting configuration!");
+                ROS_ERROR("* Error setting configuration!");
                 return ODRIVE_ERROR;
-        }
+            }
         }
         if (calibrateAxis0(endpoint, odrive_json) != ODRIVE_OK) {
-            ROS_ERROR("Error calibrating axis 0!");
-        return ODRIVE_ERROR;
-    }
+            ROS_ERROR("* Error calibrating axis 0!");
+            return ODRIVE_ERROR;
+        }
 //      if (calibrateAxis1(endpoint, odrive_json) != ODRIVE_OK) {
-//          ROS_ERROR("Error calibrating axis 1!");
+//          ROS_ERROR("* Error calibrating axis 1!");
 //          return ODRIVE_ERROR;
 //      }
-    if (execOdriveFunc(endpoint, odrive_json, "save_configuration") != ODRIVE_OK) {
-        ROS_ERROR("Error saving configuration!");
-        return ODRIVE_ERROR;
-    }
+        if (execOdriveFunc(endpoint, odrive_json, "save_configuration") != ODRIVE_OK) {
+            ROS_ERROR("* Error saving configuration!");
+            return ODRIVE_ERROR;
+        }
     }
     else {
-        ROS_ERROR("Error opening configuration file!");
+        ROS_ERROR("* Error opening configuration file!");
     return ODRIVE_ERROR;
     }
 }
@@ -74,7 +74,7 @@ int setChannelConfig(odrive_endpoint *endpoint, Json::Value odrive_json, Json::V
     string name = config_json[i]["name"].asString();
     string type = config_json[i]["type"].asString();
 
-        ROS_INFO("Setting %s config value", name.c_str());
+    ROS_INFO("Setting %s config value", name.c_str());
 
     if (!type.compare("float")) {
             float val = config_json[i]["value"].asFloat();
@@ -109,14 +109,14 @@ int setChannelConfig(odrive_endpoint *endpoint, Json::Value odrive_json, Json::V
             writeOdriveData(endpoint, odrive_json, name, val);
     }
         else {
-            ROS_ERROR("Error: invalid type for %s", name.c_str());
+            ROS_ERROR("* Error: invalid type for %s", name.c_str());
             return ODRIVE_ERROR;
         }
     }
 
     // Save configuration
     if (save_config) {
-        ret = execOdriveFunc(endpoint, odrive_json, "save_configuration");
+//        ret = execOdriveFunc(endpoint, odrive_json, "save_configuration");
     }
 
     return ret;
@@ -134,16 +134,16 @@ int setChannelConfig(odrive_endpoint *endpoint, Json::Value odrive_json, Json::V
 int calibrateAxis0(odrive_endpoint *endpoint, Json::Value odrive_json)
 {
     float fval;
-    uint8_t u8val;
+    uint32_t u32val;
     bool bval;
 
-    u8val = AXIS_STATE_MOTOR_CALIBRATION;
-    writeOdriveData(endpoint, odrive_json, string("axis0.requested_state"), u8val);
+    u32val = AXIS_STATE_MOTOR_CALIBRATION;
+    writeOdriveData(endpoint, odrive_json, string("axis0.requested_state"), u32val);
     ros::Duration(10.0).sleep();
     bval = true;
     writeOdriveData(endpoint, odrive_json, string("axis0.motor.config.pre_calibrated"), bval);
-    u8val = AXIS_STATE_ENCODER_OFFSET_CALIBRATION;
-    writeOdriveData(endpoint, odrive_json, string("axis0.requested_state"), u8val);
+    u32val = AXIS_STATE_ENCODER_OFFSET_CALIBRATION;
+    writeOdriveData(endpoint, odrive_json, string("axis0.requested_state"), u32val);
     ros::Duration(10.0).sleep();
     bval = true;
     writeOdriveData(endpoint, odrive_json, string("axis0.encoder.config.pre_calibrated"), bval);
@@ -166,16 +166,16 @@ int calibrateAxis0(odrive_endpoint *endpoint, Json::Value odrive_json)
 int calibrateAxis1(odrive_endpoint *endpoint, Json::Value odrive_json)
 {
     float fval;
-    uint8_t u8val;
+    uint8_t u32val;
     bool bval;
 
-    u8val = AXIS_STATE_MOTOR_CALIBRATION;
-    writeOdriveData(endpoint, odrive_json, string("axis1.requested_state"), u8val);
+    u32val = AXIS_STATE_MOTOR_CALIBRATION;
+    writeOdriveData(endpoint, odrive_json, string("axis1.requested_state"), u32val);
     ros::Duration(10.0).sleep();
     bval = true;
     writeOdriveData(endpoint, odrive_json, string("axis1.motor.config.pre_calibrated"), bval);
-    u8val = AXIS_STATE_ENCODER_OFFSET_CALIBRATION;
-    writeOdriveData(endpoint, odrive_json, string("axis1.requested_state"), u8val);
+    u32val = AXIS_STATE_ENCODER_OFFSET_CALIBRATION;
+    writeOdriveData(endpoint, odrive_json, string("axis1.requested_state"), u32val);
     ros::Duration(10.0).sleep();
     bval = true;
     writeOdriveData(endpoint, odrive_json, string("axis1.encoder.config.pre_calibrated"), bval);
@@ -211,7 +211,7 @@ int getJson(odrive_endpoint *endpoint, Json::Value *odrive_json)
     Json::Reader reader;
     bool res = reader.parse(json, *odrive_json);
     if (!res) {
-        ROS_ERROR("Error parsing json!");
+        ROS_ERROR("* Error parsing json!");
         return 1;
     }
     return 0;
@@ -263,7 +263,7 @@ int getObjectByName(Json::Value odrive_json, std::string name, odrive_object *od
     }
 
     if (ret) {
-        ROS_ERROR("%s not found!", name.c_str());
+        ROS_ERROR("* %s not found!", name.c_str());
     }
     return ret;
 }
@@ -286,65 +286,65 @@ int readOdriveData(odrive_endpoint *endpoint, Json::Value odrive_json,
 
     ret = getObjectByName(odrive_json, object, &odo);
     if (ret) {
-        ROS_ERROR("Error getting ID for %s", object.c_str());
+        ROS_ERROR("* Error getting ID for %s", object.c_str());
     return ret;
     }
 
     if (odo.access.find("r") == string::npos) {
-        ROS_ERROR("Error: invalid read access for %s", object.c_str());
+        ROS_ERROR("* Error: invalid read access for %s", object.c_str());
         return ret;
     }
 
     if (!odo.type.compare("float")) {
     if (sizeof(value) != sizeof(float)) {
-            ROS_ERROR("Error value for %s is not float", object.c_str());
+            ROS_ERROR("* Error value for %s is not float", object.c_str());
             return ODRIVE_ERROR;
     }
     }
     else if (!odo.type.compare("uint8")) {
         if (sizeof(value) != sizeof(uint8_t)) {
-            ROS_ERROR("Error value for %s is not uint8_t", object.c_str());
+            ROS_ERROR("* Error value for %s is not uint8_t", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else if (!odo.type.compare("uint16")) {
         if (sizeof(value) != sizeof(uint16_t)) {
-            ROS_ERROR("Error value for %s is not uint16_t", object.c_str());
+            ROS_ERROR("* Error value for %s is not uint16_t", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else if (!odo.type.compare("uint32")) {
         if (sizeof(value) != sizeof(uint32_t)) {
-            ROS_ERROR("Error value for %s is not uint32_t", object.c_str());
+            ROS_ERROR("* Error value for %s is not uint32_t", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else if (!odo.type.compare("uint64")) {
         if (sizeof(value) != sizeof(uint64_t)) {
-            ROS_ERROR("Error value for %s is not uint64_t", object.c_str());
+            ROS_ERROR("* Error value for %s is not uint64_t", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else if (!odo.type.compare("int32")) {
         if (sizeof(value) != sizeof(int)) {
-            ROS_ERROR("Error value for %s is not int", object.c_str());
+            ROS_ERROR("* Error value for %s is not int", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else if (!odo.type.compare("int16")) {
         if (sizeof(value) != sizeof(short)) {
-            ROS_ERROR("Error value for %s is not short", object.c_str());
+            ROS_ERROR("* Error value for %s is not short", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else if (!odo.type.compare("bool")) {
         if (sizeof(value) != sizeof(bool)) {
-            ROS_ERROR("Error value for %s is not bool", object.c_str());
+            ROS_ERROR("* Error value for %s is not bool", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else {
-        ROS_ERROR("Error: invalid type for %s", object.c_str());
+        ROS_ERROR("* Error: invalid type for %s", object.c_str());
         return ODRIVE_ERROR;
     }
 
@@ -371,65 +371,65 @@ int writeOdriveData(odrive_endpoint *endpoint, Json::Value odrive_json,
 
     ret = getObjectByName(odrive_json, object, &odo);
     if (ret) {
-        ROS_ERROR("Error: getting ID for %s", object.c_str());
+        ROS_ERROR("* Error: getting ID for %s", object.c_str());
         return ODRIVE_ERROR;
     }
 
     if (odo.access.find("w") == string::npos) {
-        ROS_ERROR("Error: invalid write access for %s", object.c_str());
+        ROS_ERROR("* Error: invalid write access for %s", object.c_str());
         return ODRIVE_ERROR;
     }
 
     if (!odo.type.compare("float")) {
         if (sizeof(value) != sizeof(float)) {
-            ROS_ERROR("Error value for %s is not float", object.c_str());
+            ROS_ERROR("* Error value for %s is not float", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else if (!odo.type.compare("uint8")) {
         if (sizeof(value) != sizeof(uint8_t)) {
-            ROS_ERROR("Error value for %s is not uint8_t", object.c_str());
+            ROS_ERROR("* Error value for %s is not uint8_t", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else if (!odo.type.compare("uint16")) {
         if (sizeof(value) != sizeof(uint16_t)) {
-            ROS_ERROR("Error value for %s is not uint16_t", object.c_str());
+            ROS_ERROR("* Error value for %s is not uint16_t", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else if (!odo.type.compare("uint32")) {
         if (sizeof(value) != sizeof(uint32_t)) {
-            ROS_ERROR("Error value for %s is not uint32_t", object.c_str());
+            ROS_ERROR("* Error value for %s is not uint32_t", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else if (!odo.type.compare("uint64")) {
         if (sizeof(value) != sizeof(uint64_t)) {
-            ROS_ERROR("Error value for %s is not uint64_t", object.c_str());
+            ROS_ERROR("* Error value for %s is not uint64_t", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else if (!odo.type.compare("int32")) {
         if (sizeof(value) != sizeof(int)) {
-            ROS_ERROR("Error value for %s is not int", object.c_str());
+            ROS_ERROR("* Error value for %s is not int", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else if (!odo.type.compare("int16")) {
         if (sizeof(value) != sizeof(short)) {
-            ROS_ERROR("Error value for %s is not short", object.c_str());
+            ROS_ERROR("* Error value for %s is not short", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else if (!odo.type.compare("bool")) {
         if (sizeof(value) != sizeof(bool)) {
-            ROS_ERROR("Error value for %s is not bool", object.c_str());
+            ROS_ERROR("* Error value for %s is not bool", object.c_str());
             return ODRIVE_ERROR;
         }
     }
     else {
-        ROS_ERROR("Error: invalid type for %s", object.c_str());
+        ROS_ERROR("* Error: invalid type for %s", object.c_str());
         return ODRIVE_ERROR;
     }
 
@@ -455,17 +455,20 @@ int execOdriveFunc(odrive_endpoint *endpoint, Json::Value odrive_json,
 
     ret = getObjectByName(odrive_json, object, &odo);
     if (ret) {
-        ROS_ERROR("Error getting ID");
+        ROS_ERROR("* Error getting ID");
         return ret;
     }
 
     if (odo.type.compare("function")) {
-        ROS_ERROR("Error invalid type");
+        ROS_ERROR("* Error invalid type");
         return ret;
     }
 
-    endpoint->execFunc(odo.id);
-    return 0;
+    ret = endpoint->execFunc(odo.id);
+    if (ret != LIBUSB_SUCCESS) {
+        ROS_ERROR("* Error executing %s function", object.c_str());
+    }
+    return ret;
 }
 
 template int writeOdriveData(odrive_endpoint *, Json::Value, std::string, uint8_t &);
