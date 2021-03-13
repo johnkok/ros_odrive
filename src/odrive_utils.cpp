@@ -40,10 +40,10 @@ int updateTargetConfig(odrive_endpoint *endpoint, Json::Value odrive_json, strin
             ROS_ERROR("* Error calibrating axis 0!");
             return ODRIVE_ERROR;
         }
-//      if (calibrateAxis1(endpoint, odrive_json) != ODRIVE_OK) {
-//          ROS_ERROR("* Error calibrating axis 1!");
-//          return ODRIVE_ERROR;
-//      }
+        if (calibrateAxis1(endpoint, odrive_json) != ODRIVE_OK) {
+            ROS_ERROR("* Error calibrating axis 1!");
+            return ODRIVE_ERROR;
+        }
         if (execOdriveFunc(endpoint, odrive_json, "save_configuration") != ODRIVE_OK) {
             ROS_ERROR("* Error saving configuration!");
             return ODRIVE_ERROR;
@@ -116,7 +116,7 @@ int setChannelConfig(odrive_endpoint *endpoint, Json::Value odrive_json, Json::V
 
     // Save configuration
     if (save_config) {
-//        ret = execOdriveFunc(endpoint, odrive_json, "save_configuration");
+        ret = execOdriveFunc(endpoint, odrive_json, "save_configuration");
     }
 
     return ret;

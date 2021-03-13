@@ -64,17 +64,17 @@ void msgCallback(const ros_odrive::odrive_ctrl::ConstPtr& msg)
             // Set velocity
             fval = msg->fval;
             writeOdriveData(endpoint, odrive_json,
-                    cmd.append(".controller.vel_setpoint"), fval);
+                    cmd.append(".controller.input_vel"), fval);
             break;
 
 	case (CMD_AXIS_SET_VELOCITY_DUAL):
             // Set velocity on both axis
             fval = msg->fval;
             writeOdriveData(endpoint, odrive_json,
-                    "axis0.controller.vel_setpoint", fval);
+                    "axis0.controller.input_vel", fval);
             fval = msg->fval2;
             writeOdriveData(endpoint, odrive_json,
-                    "axis1.controller.vel_setpoint", fval);
+                    "axis1.controller.input_vel", fval);
             break;
 
         case (CMD_REBOOT):
