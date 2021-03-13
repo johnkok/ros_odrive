@@ -166,7 +166,7 @@ int calibrateAxis0(odrive_endpoint *endpoint, Json::Value odrive_json)
 int calibrateAxis1(odrive_endpoint *endpoint, Json::Value odrive_json)
 {
     float fval;
-    uint8_t u32val;
+    uint32_t u32val;
     bool bval;
 
     u32val = AXIS_STATE_MOTOR_CALIBRATION;
